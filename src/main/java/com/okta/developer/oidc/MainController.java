@@ -30,12 +30,19 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 
 /**
  * @author Joe Grandja
  */
 @Controller
 public class MainController {
+     @Value("#{ @environment['example.baseUrl'] }")
+    private String serverBaseUrl;
 
     private final OAuth2AuthorizedClientService authorizedClientService;
 
@@ -50,20 +57,27 @@ public class MainController {
         model.addAttribute("clientName", authorizedClient.getClientRegistration().getClientName());
         return "index";
     }
-
-    @RequestMapping("/userinfo")
+    
+ 
+ 
+   
+    @RequestMapping("/service")
     public String userinfo(Model model, OAuth2AuthenticationToken authentication) {
-        OAuth2AuthorizedClient authorizedClient = this.getAuthorizedClient(authentication);
-        Map userAttributes = Collections.emptyMap();
-        String userInfoEndpointUri = authorizedClient.getClientRegistration()
-                .getProviderDetails().getUserInfoEndpoint().getUri();
-        if (!StringUtils.isEmpty(userInfoEndpointUri)) {    // userInfoEndpointUri is optional for OIDC Clients
-            userAttributes = WebClient.builder()
-                    .filter(oauth2Credentials(authorizedClient)).build()
-                    .get().uri(userInfoEndpointUri)
-                    .retrieve()
-                    .bodyToMono(Map.class).block();
-        }
+        Map userAttributes;
+        System.out.println(authentication);
+            
+      
+            String accessToken = 
+            
+            authorizedClientService.loadAuthorizedClient(
+                            authentication.getAuthorizedClientRegistrationId(), authentication.getName()).getAccessToken().getTokenValue();
+            userAttributes =  WebClient.builder().build()
+           .get()
+            .uri(serverBaseUrl + "/mod")
+            .header("Authorization", "Bearer " + accessToken)
+            .retrieve()
+            .bodyToMono(Map.class).block();
+        
         model.addAttribute("userAttributes", userAttributes);
         return "userinfo";
     }
